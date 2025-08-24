@@ -1,0 +1,32 @@
+finished intersection number... 1 for space type...FEDERAL/STATE
+
+finished intersection number... 1 for space type...LOCAL/PRIVATE
+
+finished intersection number... 1 for space type...FEDERAL/STATE
+
+finished intersection number... 1 for space type...LOCAL/PRIVATE
+
+total intersections...3
+
+getting intersection number...1
+
+getting intersection number...2
+
+getting intersection number...3
+
+finished intersection number... 1 for space type...FEDERAL/STATE
+
+finished intersection number... 1 for space type...LOCAL/PRIVATE
+
+finished intersection number... 1 for space type...FEDERAL/STATE
+
+finished intersection number... 1 for space type...LOCAL/PRIVATE
+
+total intersections...3
+
+getting intersection number...1
+
+getting intersection number...2
+
+getting intersection number...3
+

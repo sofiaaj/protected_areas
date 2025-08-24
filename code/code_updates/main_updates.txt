@@ -1,0 +1,68 @@
+PAD to tract for... CA
+PAD to tract for... CO
+PAD to tract for... AZPAD to tract for... AR
+
+PAD to tract for... AL
+PAD to tract for... CT
+PAD to tract for... DE
+PAD to tract for... FL
+PAD to tract for... GA
+PAD to tract for... ID
+PAD to tract for... IL
+PAD to tract for... IN
+PAD to tract for... IA
+PAD to tract for... KS
+PAD to tract for... KY
+PAD to tract for... LA
+PAD to tract for... ME
+PAD to tract for... MD
+PAD to tract for... MA
+PAD to tract for... MI
+PAD to tract for... MN
+PAD to tract for... MS
+PAD to tract for... MO
+PAD to tract for... MT
+PAD to tract for... NE
+PAD to tract for... NV
+PAD to tract for... NH
+PAD to tract for... NJ
+PAD to tract for... NM
+PAD to tract for... NY
+PAD to tract for... NC
+PAD to tract for... ND
+PAD to tract for... OH
+PAD to tract for... OK
+PAD to tract for... OR
+PAD to tract for... PA
+PAD to tract for... RI
+PAD to tract for... SC
+PAD to tract for... SD
+PAD to tract for... TN
+PAD to tract for... TX
+PAD to tract for... UT
+PAD to tract for... VT
+PAD to tract for... VA
+PAD to tract for... WA
+PAD to tract for... WV
+PAD to tract for... WI
+PAD to tract for... WY
+finished getting local and federal st_difference...
+
+finished getting local and federal st_difference...
+
+finished getting local and federal st_difference...
+
+Processing... AL
+
+Getting num agreeements for... AL
+
+Processing... AZ
+
+Getting num agreeements for... AZ
+
+finished getting local and federal st_difference...
+
+finished getting local and federal st_difference...
+
+finished getting local and federal st_difference...
+
