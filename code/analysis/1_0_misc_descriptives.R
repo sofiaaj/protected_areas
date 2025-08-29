@@ -191,7 +191,10 @@ maps = list()
 for(i in 1:nrow(tract_df)){
   curr_map = build_map(tract_df$state[i],tract_df$geoid[i],tract_df$zoom[i],tract_df$ruca_type[i])
   filename = paste0('output/figures/process/map_fig_',i,'.png')
-  ggsave(filename,plot = curr_map,width=8,height=8)
+  # only used 1 and 7 in paper
+  if(i %in% c(1,7)){
+    ggsave(filename,plot = curr_map,width=8,height=8)
+  }
 }
 
 
@@ -347,7 +350,7 @@ size = pad_clean %>%
   group_by(space_type) %>%
   summarize(avg_size = round(mean(size/1000),2)) %>%
   spread(space_type,avg_size) %>%
-  mutate(variable_name = 'Average size (m^2)') %>%
+  mutate(variable_name = 'Avg. size (sq m.)') %>%
   mutate_all(as.character)
 
 top_des_tp = pad_clean %>%
@@ -382,7 +385,7 @@ access_type = pad_clean %>%
            pub_access == 'UK' ~ 4),
          pub_access = case_when(
            pub_access == 'OA' ~ 'Public can visit',
-           pub_access == 'RA' ~ 'Access is restricted (e.g. requires permission)',
+           pub_access == 'RA' ~ 'Access is restricted (e.g., requires permission)',
            pub_access == 'XA' ~ 'Closed to public',
            pub_access == 'UK' ~ 'Access is unknown')) %>%
   select(-count) %>%
@@ -423,15 +426,17 @@ space_subtypes = pad_clean %>%
   select(space_type,space_type_1,rank) %>%
   spread(space_type,space_type_1) %>%
   select(-rank) %>%
-  mutate(variable_name = 'Subtypes distribution (% of total acres)') %>%
+  mutate(variable_name = 'Subtypes (% of acres)') %>%
   mutate_all(as.character)
 
-bind_rows(size,top_des_tp,access_type,space_subtypes) %>%
+out = bind_rows(size,top_des_tp,access_type,space_subtypes) %>%
   select(3,1,2) %>%
   kable(format = "latex",
         booktabs = T) %>%
   column_spec(1, width = "3cm") %>%
   column_spec(2, width = "5cm") %>%
-  column_spec(3, width = "5cm") %>%
-  collapse_rows(column = 1,valign="top",latex_hline="none") %>%
+  column_spec(3, width = "5.5cm") %>%
+  collapse_rows(column = 1,valign="top",latex_hline="major") 
+out <- gsub("variable\\\\_name", "", out)
+out %>%
   save_kable('output/tables/process/space_type_descriptives.tex')

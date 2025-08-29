@@ -104,8 +104,10 @@ p2 = county_growth %>%
 
 p = p1 / p2
 
+if(!robust){
 ggsave(paste0(FIG_ROOT_DIR,"protected_areas_growth.png"),p,
        width=6,height=6)
+}
 
 df = full_df %>% 
   filter(ruca_code != 'Rural' & ruca_code != '' & ruca_code != 'Missing') %>%
@@ -136,8 +138,10 @@ p = df %>%
   labs(x = 'Year',
        y = '')
 
+if(!robust){
 ggsave(paste0(FIG_ROOT_DIR,"protected_areas_overtime.png"),p,
        width=6,height=5)
+}
 
 
 paired_colors <- brewer.pal(n = 8, name = "Set2")
@@ -229,7 +233,9 @@ p2 = make_plot(mods0,mods1,mods2) +
   labs(x="Year",
        y="Difference in number of protection agreements")
 
+if(!robust){
 ggsave(paste0(FIG_ROOT_DIR,"differences_protection_agreements_overtime.png"),
        p2,
        width=6,
        height=6)
+}

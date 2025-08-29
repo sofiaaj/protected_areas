@@ -55,7 +55,8 @@ df = df %>%
   filter(ruca_code != 'Missing') %>%
   mutate(perc.area = perc.area * 100) 
 
-# figure1
+# figure1 if not robust
+if(!robust){
 us_states <- states(cb = TRUE) %>% 
   filter(STUSPS != "HI" & STUSPS != "AK") %>%
   rename(state=STUSPS)# Exclude Hawaii and Alaska for a continental US map
@@ -100,6 +101,7 @@ p = p1
 ggsave(paste0(FIG_ROOT_DIR,"protected_areas_by_state_and_type.png"),
        p,
        height=5,width=7)
+}
 
 # figure 2
 theme_set(theme2)
@@ -186,10 +188,11 @@ p2 = make_plot(modB) +
 p = grid.arrange(p1,p2,
                  nrow=1)
 
-ggsave(paste0(FIG_ROOT_DIR,"income_differences_protection.png"),
-       p,
-       width=8,
-       height=4)
+# not in paper
+#ggsave(paste0(FIG_ROOT_DIR,"income_differences_protection.png"),
+#       p,
+#       width=8,
+#       height=4)
 
 
 
@@ -251,11 +254,11 @@ p2 = make_plot(modB) +
 p = grid.arrange(p1,p2,
                  nrow=1)
 
-
-ggsave(paste0(FIG_ROOT_DIR,"racial_differences_protection.png"),
-       p,
-       width=8,
-       height=4)
+# not in paper
+#ggsave(paste0(FIG_ROOT_DIR,"racial_differences_protection.png"),
+#       p,
+#       width=8,
+#       height=4)
 
 
 
@@ -388,30 +391,32 @@ setFixest_dict(c(tc_race_1majority_asian="Majority Asian",
                  ruca_code="Rural/Urban Code"))
 
 
-etable(mods1,signif.code = c("**"=0.01, "*"=0.05),
-       digits="r3",depvar=F,tex=T,drop="Constant",
-       replace=T,
-       file=paste0(TAB_ROOT_DIR,"loc_priv_agreements.tex"))
+#etable(mods1,signif.code = c("**"=0.01, "*"=0.05),
+#       digits="r3",depvar=F,tex=T,drop="Constant",
+#       replace=T,
+#       file=paste0(TAB_ROOT_DIR,"loc_priv_agreements.tex"))
 
-etable(mods2,signif.code = c("**"=0.01, "*"=0.05),
-       digits="r3",depvar=F,tex=T,drop="constant",
-       replace=T,file=paste0(TAB_ROOT_DIR,"loc_priv_share_protected.tex"))
+#etable(mods2,signif.code = c("**"=0.01, "*"=0.05),
+#       digits="r3",depvar=F,tex=T,drop="constant",
+#       replace=T,file=paste0(TAB_ROOT_DIR,"loc_priv_share_protected.tex"))
 
 fed_st = df %>% 
   filter(space_type == "FEDERAL/STATE" & !is.na(median_house_value)) %>%
   droplevels()
+
 mods1 = run_mods(fed_st %>% rename(outcome = all_agreements))
 mods2 = run_mods(fed_st %>% rename(outcome = perc.area))
 
-etable(mods1,signif.code = c("**"=0.01, "*"=0.05),
-       digits="r3",depvar=F,tex=T,drop="Constant",
-       replace=T,
-       file=paste0(TAB_ROOT_DIR,"fed_st_agreements.tex"))
+# not in paper
+#etable(mods1,signif.code = c("**"=0.01, "*"=0.05),
+#       digits="r3",depvar=F,tex=T,drop="Constant",
+#       replace=T,
+#       file=paste0(TAB_ROOT_DIR,"fed_st_agreements.tex"))
 
-etable(mods2,signif.code = c("**"=0.01, "*"=0.05),
-       digits="r3",depvar=F,tex=T,drop="constant",
-       replace=T,
-       file=paste0(TAB_ROOT_DIR,"fed_st_share_protected.tex"))
+#etable(mods2,signif.code = c("**"=0.01, "*"=0.05),
+#       digits="r3",depvar=F,tex=T,drop="constant",
+#       replace=T,
+#       file=paste0(TAB_ROOT_DIR,"fed_st_share_protected.tex"))
 
 
 ## version with race and income categories
@@ -437,6 +442,7 @@ df$tc_ownership = relevel(as.factor(df$tc_ownership), ref = "3")
 df$tc_home_value = relevel(as.factor(df$tc_home_value), ref = "3")
 df = df %>%
   mutate(race_income = paste(tc_race_1,tc_income_1,sep="_"))
+
 df$race_income = relevel(as.factor(df$race_income), ref = "majority_white_high_income")
 
 loc_priv = df %>% 
@@ -445,6 +451,7 @@ loc_priv = df %>%
 
 mods1A = run_mods(loc_priv %>% rename(outcome = all_agreements))
 mods2A = run_mods(loc_priv %>% rename(outcome = perc.area))
+
 setFixest_dict(c(race_incomemajority_asian_high_income="Majority Asian, High Income",
                  race_incomemajority_asian_low_income="Majority Asian, Middle Income",
                  race_incomemajority_asian_middle_income="Majority Asian, Low Income",
@@ -504,22 +511,25 @@ mod_to_fig = function(mods2,combined=F){
   return(p)
 }
 
-etable(mods1A,signif.code = c("**"=0.01, "*"=0.05),
-       digits="r3",depvar=F,tex=T,drop="Constant",
-       replace=T,
-       file=paste0(TAB_ROOT_DIR,"loc_priv_agreements_race_income_cats.tex"))
+#etable(mods1A,signif.code = c("**"=0.01, "*"=0.05),
+#       digits="r3",depvar=F,tex=T,drop="Constant",
+#       replace=T,
+#       file=paste0(TAB_ROOT_DIR,"loc_priv_agreements_race_income_cats.tex"))
 
+if(!robust){
 etable(mods2A,signif.code = c("**"=0.01, "*"=0.05),
        digits="r3",depvar=F,tex=T,drop="Constant",
        replace=T,
        file=paste0(TAB_ROOT_DIR,"loc_priv_share_protected_race_income_cats.tex"))
+}
 
 p = mod_to_fig(mods2A)
 
-ggsave(paste0(FIG_ROOT_DIR,"loc_priv_share_protected_race_income_cats.png"),
-       p,
-       width=7,
-       height=5)
+# not in paper
+#ggsave(paste0(FIG_ROOT_DIR,"loc_priv_share_protected_race_income_cats.png"),
+#       p,
+#       width=7,
+#       height=5)
 
 fed_st = df %>% 
   filter(space_type == "FEDERAL/STATE" & !is.na(median_house_value)) %>%
@@ -528,22 +538,26 @@ fed_st = df %>%
 mods1B = run_mods(fed_st %>% rename(outcome = all_agreements))
 mods2B = run_mods(fed_st %>% rename(outcome = perc.area))
 
-etable(mods1B,signif.code = c("**"=0.01, "*"=0.05),
-       digits="r3",depvar=F,tex=T,drop="Constant",
-       replace=T,
-       file=paste0(TAB_ROOT_DIR,"fed_st_agreements_race_income_cats.tex"))
+# not in paper
+#etable(mods1B,signif.code = c("**"=0.01, "*"=0.05),
+#       digits="r3",depvar=F,tex=T,drop="Constant",
+#       replace=T,
+#       file=paste0(TAB_ROOT_DIR,"fed_st_agreements_race_income_cats.tex"))
 
+if(!robust){
 etable(mods2B,signif.code = c("**"=0.01, "*"=0.05),
        digits="r3",depvar=F,tex=T,drop="constant",
        replace=T,
        file=paste0(TAB_ROOT_DIR,"fed_st_share_protected_race_income_cats.tex"))
+}
 
 p = mod_to_fig(mods2B)
 
-ggsave(paste0(FIG_ROOT_DIR,"fed_st_share_protected_race_income_cats.png"),
-       p,
-       width=8,
-       height=6)
+# not in paper
+#ggsave(paste0(FIG_ROOT_DIR,"fed_st_share_protected_race_income_cats.png"),
+#       p,
+#       width=8,
+#       height=6)
 
 mods2A = mod_to_fig(mods2A,combined=T)
 mods2B = mod_to_fig(mods2B,combined=T)
@@ -568,3 +582,29 @@ ggsave(paste0(FIG_ROOT_DIR,"share_protected_race_income_cats_combined.png"),
        p,
        width=8,
        height=5)
+
+mods1A = mod_to_fig(mods1A,combined=T)
+mods1B = mod_to_fig(mods1B,combined=T)
+
+fig_df = bind_rows(mods1A %>% mutate(space_type = 'LOCAL/PRIVATE'),
+                   mods1B %>% mutate(space_type = 'FEDERAL/STATE')) 
+p = fig_df %>%
+  filter(race != "Majority Other" & race != "Majority Asian") %>%
+  ggplot(aes(x=estimate,y=kind,shape=space_type,color=space_type)) +
+  geom_point(position=position_dodge(width=0.5)) +
+  geom_errorbarh(aes(xmin=estimate-1.96*std.error,xmax=estimate+1.96*std.error),
+                 position=position_dodge(width=0.5),
+                 height=0) +
+  geom_vline(xintercept=0,linetype='dashed') +
+  scale_color_manual(values=selected_colors) +
+  facet_grid(race~income) +
+  labs(x = 'Estimated Difference in Number of Protected Agreements',
+       y = '') +
+  theme(legend.position = 'bottom')
+
+if(!robust){
+ggsave(paste0(FIG_ROOT_DIR,"num_agreements_race_income_cats_combined.png"),
+       p,
+       width=8,
+       height=5)
+}

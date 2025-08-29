@@ -96,11 +96,13 @@ p = grid.arrange(
   top = text_grob("Trends in Protected Areas in Virginia")
 )
 
+if(!robust){
 ggsave(paste0(FIG_ROOT_DIR, "virginia_trends.png"),
        p,
        width = 9,
        height = 4)
-
+}
+  
 full_subset = full_subset %>%
   filter(year >= 1994 & year <= 2006) %>%
   group_by(geoid, space_type) %>%
@@ -253,12 +255,14 @@ ggsave(
   height = 6
 )
 
+if(!robust){
 ggsave(
   paste0(FIG_ROOT_DIR, "virginia_tax_effect_alt_control_strategy.png"),
   main_model_2,
   width = 5,
   height = 6
 )
+}
 
 ## Treatment heterogeneity
 
@@ -484,206 +488,203 @@ ggsave(
   height = 7
 )
 
+if(!robust){
 ggsave(
   paste0(FIG_ROOT_DIR, "virginia_tax_effect_income_heterogeneity_alt_control_strategy.png"),
   income_model_2,
   width = 7,
   height = 7
 )
-
-
-# ####
-
-out <-
-  matchit(
-    treat ~ median_household_income + white_pct + perc.area,
-    data = pre_treatment_chars %>%
-      filter(treat == 0 | tc_race_1 == 'majority_white'),
-    replace = T,
-    exact = ~  ruca_code,
-    distance = "mahalanobis",
-    normalize = F,
-    method = "nearest",
-    ratio = RATIO
-  )
-
-match_data = match.data(out) %>%
-  select(geoid, weights) %>%
-  unique()
-
-analysis_df_white_1 = analysis_df_2 %>%
-  filter(treat == 0 | pre_treat_race_type == 'majority_white') %>%
-  select(-weights) %>%
-  merge(., match_data, by = 'geoid')
-
-analysis_df_white_2 = analysis_df_2 %>%
-  filter(pre_treat_race_type == 'majority_white') %>%
-  mutate(weights = 1)
-
-
-out <-
-  matchit(
-    treat ~ median_household_income + white_pct + perc.area,
-    data = pre_treatment_chars %>%
-      filter(
-        treat == 0 |
-          tc_race_1 %in% c('majority_hispanic', 'majority_black')
-      ),
-    replace = T,
-    exact = ~  ruca_code,
-    distance = "mahalanobis",
-    normalize = F,
-    method = "nearest",
-    ratio = RATIO
-  )
-
-match_data = match.data(out) %>%
-  select(geoid, weights) %>%
-  unique()
-
-analysis_df_black_hisp_1 = analysis_df_2 %>%
-  filter(treat == 0 |
-           pre_treat_race_type %in% c('majority_hispanic', 'majority_black')) %>%
-  select(-weights) %>%
-  merge(., match_data, by = 'geoid')
-
-analysis_df_black_hisp_2 = analysis_df_2 %>%
-  filter(pre_treat_race_type %in% c('majority_hispanic', 'majority_black')) %>%
-  mutate(weights = 1)
-
-
-run_race_model = function(analysis_df_white, analysis_df_black_hisp) {
-
-p_df = bind_rows(
-  analysis_df_white %>% mutate(race_type = "Majority White Tracts"),
-  analysis_df_black_hisp %>% mutate(race_type = "Majority Black or Hispanic Tracts")
-) %>%
-  mutate(treat = ifelse(treat == 1, "Virginia", "Control Tracts")) %>%
-  group_by(year, treat, race_type) %>%
-  summarise(perc.area = mean(perc.area, na.rm = T))
-
-p1 = p_df %>%
-  ggplot(aes(
-    x = year,
-    y = perc.area,
-    color = as.factor(treat)
-  )) +
-  geom_line() +
-  geom_point() +
-  geom_vline(xintercept = 1999, linetype = "dashed") +
-  facet_wrap( ~ race_type) +
-  scale_x_continuous(breaks = seq(1994, 2006, 2)) +
-  labs(
-    title = "Raw Trends",
-    x = "Year",
-    y = "Share Tract Protected",
-    color = ""
-  ) +
-  theme(legend.position = "none")
-
-p2 = p_df %>%
-  group_by(treat, race_type) %>%
-  mutate(baseline = perc.area[year == 1994]) %>%
-  mutate(perc.area = (perc.area - baseline)) %>%
-  ggplot(aes(
-    x = year,
-    y = perc.area,
-    color = as.factor(treat)
-  )) +
-  geom_line() +
-  geom_point(size = 1) +
-  geom_vline(xintercept = 1999, linetype = "dashed") +
-  facet_wrap( ~ race_type) +
-  scale_x_continuous(breaks = seq(1993, 2007, 3)) +
-  scale_y_continuous(expand = expansion(mult = 0.5)) +
-  labs(
-    title = "% Change in Share Tract Protected Since 1994",
-    x = "Year",
-    y = "% Change in Share Tract Protected",
-    color = ""
-  ) +
-  theme(legend.position = "bottom")
-
-
-
-#
-mod_1 = feols(
-  perc.area ~ i(year, treat, ref = 1999) |
-    geoid + year,
-  cluster = ~ geoid,
-  weights = ~ weights,
-  data = analysis_df_white
-)
-
-mod_2 = feols(
-  perc.area ~ i(year, treat, ref = 1999) |
-    geoid + year,
-  cluster = ~ geoid,
-  weights = ~ weights,
-  data = analysis_df_black_hisp
-)
-
-p3 = bind_rows(
-  tidy(mod_1) %>%
-    add_case(
-      term = '1999',
-      estimate = 0,
-      std.error = 0
-    ) %>%
-    mutate(race_type = "Majority White Tracts"),
-  tidy(mod_2) %>% add_case(
-    term = '1999',
-    estimate = 0,
-    std.error = 0
-  ) %>%
-    mutate(race_type = "Majority Black or Hispanic Tracts")
-) %>%
-  mutate(year = str_extract(term, "\\d{4}")) %>%
-  mutate(year = as.numeric(year)) %>%
-  ggplot(aes(x = year, y = estimate)) +
-  geom_point() +
-  geom_line() +
-  geom_errorbar(aes(
-    ymin = estimate - std.error * 1.96,
-    ymax = estimate + std.error * 1.96
-  ),
-  width = 0) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  facet_wrap( ~ race_type) +
-  geom_vline(xintercept = 1999, linetype = "dashed") +
-  scale_x_continuous(breaks = seq(1994, 2006, 2)) +
-  coord_cartesian(ylim = c(-0.005, 0.005)) +
-  labs(
-    title = "Event Study",
-    x = "Year",
-    y = "Coefficient Estimate",
-    color = ""
-  )
-
-p = grid.arrange(p1, p2, p3, nrow = 3,
-                 heights = c(1, 1.2, 1))
 }
 
-race_model_1 = run_race_model(analysis_df_white_1, analysis_df_black_hisp_1)
-race_model_2 = run_race_model(analysis_df_white_2, analysis_df_black_hisp_2)
-
-ggsave(
-  paste0(FIG_ROOT_DIR, "virginia_tax_effect_racial_heterogeneity.png"),
-  race_model_1,
-  width = 7,
-  height = 7
-)
-
-ggsave(
-  paste0(FIG_ROOT_DIR, "virginia_tax_effect_racial_heterogeneity_alt_control_strategy.png"),
-  race_model_2,
-  width = 7,
-  height = 7
-)
 
 
+# removed race analysis
 
-
-
-
+# out <-
+#   matchit(
+#     treat ~ median_household_income + white_pct + perc.area,
+#     data = pre_treatment_chars %>%
+#       filter(treat == 0 | tc_race_1 == 'majority_white'),
+#     replace = T,
+#     exact = ~  ruca_code,
+#     distance = "mahalanobis",
+#     normalize = F,
+#     method = "nearest",
+#     ratio = RATIO
+#   )
+# 
+# match_data = match.data(out) %>%
+#   select(geoid, weights) %>%
+#   unique()
+# 
+# analysis_df_white_1 = analysis_df_2 %>%
+#   filter(treat == 0 | pre_treat_race_type == 'majority_white') %>%
+#   select(-weights) %>%
+#   merge(., match_data, by = 'geoid')
+# 
+# analysis_df_white_2 = analysis_df_2 %>%
+#   filter(pre_treat_race_type == 'majority_white') %>%
+#   mutate(weights = 1)
+# 
+# 
+# out <-
+#   matchit(
+#     treat ~ median_household_income + white_pct + perc.area,
+#     data = pre_treatment_chars %>%
+#       filter(
+#         treat == 0 |
+#           tc_race_1 %in% c('majority_hispanic', 'majority_black')
+#       ),
+#     replace = T,
+#     exact = ~  ruca_code,
+#     distance = "mahalanobis",
+#     normalize = F,
+#     method = "nearest",
+#     ratio = RATIO
+#   )
+# 
+# match_data = match.data(out) %>%
+#   select(geoid, weights) %>%
+#   unique()
+# 
+# analysis_df_black_hisp_1 = analysis_df_2 %>%
+#   filter(treat == 0 |
+#            pre_treat_race_type %in% c('majority_hispanic', 'majority_black')) %>%
+#   select(-weights) %>%
+#   merge(., match_data, by = 'geoid')
+# 
+# analysis_df_black_hisp_2 = analysis_df_2 %>%
+#   filter(pre_treat_race_type %in% c('majority_hispanic', 'majority_black')) %>%
+#   mutate(weights = 1)
+# 
+# 
+# run_race_model = function(analysis_df_white, analysis_df_black_hisp) {
+# 
+# p_df = bind_rows(
+#   analysis_df_white %>% mutate(race_type = "Majority White Tracts"),
+#   analysis_df_black_hisp %>% mutate(race_type = "Majority Black or Hispanic Tracts")
+# ) %>%
+#   mutate(treat = ifelse(treat == 1, "Virginia", "Control Tracts")) %>%
+#   group_by(year, treat, race_type) %>%
+#   summarise(perc.area = mean(perc.area, na.rm = T))
+# 
+# p1 = p_df %>%
+#   ggplot(aes(
+#     x = year,
+#     y = perc.area,
+#     color = as.factor(treat)
+#   )) +
+#   geom_line() +
+#   geom_point() +
+#   geom_vline(xintercept = 1999, linetype = "dashed") +
+#   facet_wrap( ~ race_type) +
+#   scale_x_continuous(breaks = seq(1994, 2006, 2)) +
+#   labs(
+#     title = "Raw Trends",
+#     x = "Year",
+#     y = "Share Tract Protected",
+#     color = ""
+#   ) +
+#   theme(legend.position = "none")
+# 
+# p2 = p_df %>%
+#   group_by(treat, race_type) %>%
+#   mutate(baseline = perc.area[year == 1994]) %>%
+#   mutate(perc.area = (perc.area - baseline)) %>%
+#   ggplot(aes(
+#     x = year,
+#     y = perc.area,
+#     color = as.factor(treat)
+#   )) +
+#   geom_line() +
+#   geom_point(size = 1) +
+#   geom_vline(xintercept = 1999, linetype = "dashed") +
+#   facet_wrap( ~ race_type) +
+#   scale_x_continuous(breaks = seq(1993, 2007, 3)) +
+#   scale_y_continuous(expand = expansion(mult = 0.5)) +
+#   labs(
+#     title = "% Change in Share Tract Protected Since 1994",
+#     x = "Year",
+#     y = "% Change in Share Tract Protected",
+#     color = ""
+#   ) +
+#   theme(legend.position = "bottom")
+# 
+# 
+# 
+# #
+# mod_1 = feols(
+#   perc.area ~ i(year, treat, ref = 1999) |
+#     geoid + year,
+#   cluster = ~ geoid,
+#   weights = ~ weights,
+#   data = analysis_df_white
+# )
+# 
+# mod_2 = feols(
+#   perc.area ~ i(year, treat, ref = 1999) |
+#     geoid + year,
+#   cluster = ~ geoid,
+#   weights = ~ weights,
+#   data = analysis_df_black_hisp
+# )
+# 
+# p3 = bind_rows(
+#   tidy(mod_1) %>%
+#     add_case(
+#       term = '1999',
+#       estimate = 0,
+#       std.error = 0
+#     ) %>%
+#     mutate(race_type = "Majority White Tracts"),
+#   tidy(mod_2) %>% add_case(
+#     term = '1999',
+#     estimate = 0,
+#     std.error = 0
+#   ) %>%
+#     mutate(race_type = "Majority Black or Hispanic Tracts")
+# ) %>%
+#   mutate(year = str_extract(term, "\\d{4}")) %>%
+#   mutate(year = as.numeric(year)) %>%
+#   ggplot(aes(x = year, y = estimate)) +
+#   geom_point() +
+#   geom_line() +
+#   geom_errorbar(aes(
+#     ymin = estimate - std.error * 1.96,
+#     ymax = estimate + std.error * 1.96
+#   ),
+#   width = 0) +
+#   geom_hline(yintercept = 0, linetype = "dashed") +
+#   facet_wrap( ~ race_type) +
+#   geom_vline(xintercept = 1999, linetype = "dashed") +
+#   scale_x_continuous(breaks = seq(1994, 2006, 2)) +
+#   coord_cartesian(ylim = c(-0.005, 0.005)) +
+#   labs(
+#     title = "Event Study",
+#     x = "Year",
+#     y = "Coefficient Estimate",
+#     color = ""
+#   )
+# 
+# p = grid.arrange(p1, p2, p3, nrow = 3,
+#                  heights = c(1, 1.2, 1))
+# }
+# 
+# race_model_1 = run_race_model(analysis_df_white_1, analysis_df_black_hisp_1)
+# race_model_2 = run_race_model(analysis_df_white_2, analysis_df_black_hisp_2)
+# 
+# ggsave(
+#   paste0(FIG_ROOT_DIR, "virginia_tax_effect_racial_heterogeneity.png"),
+#   race_model_1,
+#   width = 7,
+#   height = 7
+# )
+# 
+# ggsave(
+#   paste0(FIG_ROOT_DIR, "virginia_tax_effect_racial_heterogeneity_alt_control_strategy.png"),
+#   race_model_2,
+#   width = 7,
+#   height = 7
+# )
 

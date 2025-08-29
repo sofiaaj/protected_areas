@@ -100,8 +100,8 @@ map2 = ggplot() +
   theme_void() +
   theme(legend.position='bottom')
 
-p = map1 + map2
-ggsave(paste0(FIG_ROOT_DIR,'emissions_map.png'),p,width=12,height=6)
+# p = map1 + map2
+# ggsave(paste0(FIG_ROOT_DIR,'emissions_map.png'),p,width=12,height=6)
 
 
 # metric tons per household
@@ -179,7 +179,8 @@ p = all_mods %>%
        y='Emission Category') +
   theme(legend.position='bottom') 
 
-ggsave(paste0(FIG_ROOT_DIR,'emissions_vs_protection.png'),p,width=6,height=4)
+# not in paper
+# ggsave(paste0(FIG_ROOT_DIR,'emissions_vs_protection.png'),p,width=6,height=4)
 
 base_year = 1980
 
@@ -202,32 +203,56 @@ new_protection = new_protection_base %>%
 
 new_protection = merge(new_protection,emissions %>% select(-county,-name,-state),by='geoid')
 
-mod_agree_lp = feols(total_emissions ~ treat_agree + log(population_density+1) + 
+mod_agree_lp = feols(total_emissions ~ treat + log(population_density+1) + 
                        perc.protected.all + less_than_hs 
                  | state^ruca_code + tc_income_1 + tc_race_1, 
                  se="hetero",
-                 data=new_protection %>% filter(space_type == 'LOCAL/PRIVATE'))
+                 data=new_protection %>% filter(space_type == 'LOCAL/PRIVATE') %>% mutate(treat = treat_agree))
 
-mod_agree_fs = feols(total_emissions ~ treat_agree + log(population_density+1) + 
+mod_agree_fs = feols(total_emissions ~ treat + log(population_density+1) + 
                        perc.protected.all + less_than_hs 
                | state^ruca_code + tc_income_1 + tc_race_1, 
                se="hetero",
-               data=new_protection %>% filter(space_type == 'FEDERAL/STATE'))
+               data=new_protection %>% filter(space_type == 'FEDERAL/STATE') %>% mutate(treat = treat_agree))
 
-mod_acres_lp = feols(total_emissions ~ treat_acres + log(population_density+1) + perc.protected.all + less_than_hs 
+mod_acres_lp = feols(total_emissions ~ treat + log(population_density+1) + perc.protected.all + less_than_hs 
                 | state^ruca_code + tc_income_1 + tc_race_1, 
                 se="hetero",
-                data=new_protection %>% filter(space_type == 'LOCAL/PRIVATE'))
+                data=new_protection %>% filter(space_type == 'LOCAL/PRIVATE') %>% mutate(treat = treat_acres))
 
-mod_acres_fs = feols(total_emissions ~ treat_acres + log(population_density+1) + perc.protected.all + less_than_hs 
+mod_acres_fs = feols(total_emissions ~ treat + log(population_density+1) + perc.protected.all + less_than_hs 
                 | state^ruca_code + tc_income_1 + tc_race_1, 
                 se="hetero",
-                data=new_protection %>% filter(space_type == 'FEDERAL/STATE'))
+                data=new_protection %>% filter(space_type == 'FEDERAL/STATE') %>% mutate(treat = treat_acres))
 
 esttex(mod_acres_lp,mod_acres_fs,mod_agree_lp,mod_agree_fs,
        style.tex = style.tex(main="aer",signif.code=c("**"=0.01, "*"=0.05))) %>%
   writeLines(paste0(TAB_ROOT_DIR,'emissions_soo.tex'))
 
 
+clean_table = readLines(paste0(TAB_ROOT_DIR,'clean_emissions_table_template.tex'))
+clean_table = paste(clean_table, collapse = "\n")
 
+tab1 = readLines(paste0(TAB_ROOT_DIR,'emissions_baseline_descriptive.tex'))
+tab2 = readLines(paste0(TAB_ROOT_DIR,'emissions_soo.tex'))
+
+start_line = which(str_detect(tab1, 'perc.'))
+end_line = which(str_detect(tab1, 'Within R'))
+tab1 = tab1[start_line:end_line]
+tab1 = str_replace(tab1,'perc.area','\\\\% Acres Protected')
+tab1 = str_replace(tab1,'all\\\\\\_agreements','All Agreements')
+tab1  = paste(tab1, collapse = '\n')
+out <- sub("TK_TABLE_1", tab1, clean_table, fixed = TRUE)
+
+start_line = which(str_detect(tab2, 'treat'))
+end_line = which(str_detect(tab2, 'Within R'))
+tab2 = tab2[start_line:end_line]
+tab2 = str_replace(tab2,'treat','New Protection')
+tab2 = str_replace(tab2,'log\\(population\\\\\\_density\\+1\\)','Log of Population Density (+1)')
+tab2 = str_replace(tab2,'perc.protected.all','\\\\% Acres Protected 1980')
+tab2 = str_replace(tab2,'less\\\\\\_than\\\\\\_hs','\\\\% Pop Less than HS 1980')
+tab2  = paste(tab2, collapse = '\n')
+out <- sub("TK_TABLE_2", tab2, out, fixed = TRUE)
+
+writeLines(out, paste0(TAB_ROOT_DIR,"emissions_results.tex"))
 

@@ -1,0 +1,51 @@
+
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+mod1.1 = feols(all_permits ~ share_protected_area,
+             data=county_pa %>% filter(space_type == 'LOCAL/PRIVATE'),
+             cluster = 'geoid')
+mod1.2 = feols(all_permits ~ share_protected_area | year^state,
+             data=county_pa %>% filter(space_type == 'LOCAL/PRIVATE'),
+             cluster = 'geoid')
+mod1.3 = feols(all_permits ~ share_protected_area | geoid + year^state,
+             data=county_pa %>% filter(space_type == 'LOCAL/PRIVATE'),
+             cluster = 'geoid')
+
+mod2.1 = feols(all_permits ~ share_protected_area,
+             data=county_pa %>% filter(space_type == 'FEDERAL/STATE'),
+             cluster = 'geoid')
+mod2.2 = feols(all_permits ~ share_protected_area | year^state,
+             data=county_pa %>% filter(space_type == 'FEDERAL/STATE'),
+             cluster = 'geoid')
+mod2.3 = feols(all_permits ~ share_protected_area | geoid + year^state,
+             data=county_pa %>% filter(space_type == 'FEDERAL/STATE'),
+             cluster = 'geoid')
+
+curr_dict = c("share_protected_area"    = "% Acres Protected")
+
+esttex(mod1.1,mod1.2,mod1.3,drop = c("Constant"),dict = curr_dict,
+       style.tex = style.tex(main="aer",signif.code=c("**"=0.01, "*"=0.05))) %>%
+  writeLines(.,paste0(TAB_ROOT_DIR,'permit_county_mod_fed_st.tex'))
+esttex(mod2.1,mod2.2,mod2.3,drop = c("Constant"),dict = curr_dict,
+       style.tex = style.tex(main="aer",signif.code=c("**"=0.01, "*"=0.05))) %>%
+  writeLines(.,paste0(TAB_ROOT_DIR,'permit_county_mod_fed_st.tex'))
+```
+
+```{r}
+start_line = which(str_detect(tab1, 'Acres Protected'))
+end_line = which(str_detect(tab1, 'Within R'))
+tab1 = tab1[start_line:end_line]
+tab1  = paste(tab1, collapse = '\n')
+out <- sub("TK_TABLE_1", tab1, clean_table, fixed = TRUE)
+
+start_line = which(str_detect(tab2, 'Acres Protected'))
+end_line = which(str_detect(tab2, 'Within R'))
+tab2 = tab2[start_line:end_line]
+tab2  = paste(tab2, collapse = '\n')
+out <- sub("TK_TABLE_2", tab2, out, fixed = TRUE)
+```
+

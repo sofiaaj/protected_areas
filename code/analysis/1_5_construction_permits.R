@@ -56,8 +56,9 @@ p = county_permits %>%
   labs(x = 'Year', y = 'Permits (in thousands)',
        subtitle = 'Avg. Residential Construction Permits by State')
 
-ggsave(paste0(FIG_ROOT_DIR,'permits_over_time.png'),
-       height = 3,width = 5)
+# not in paper
+#ggsave(paste0(FIG_ROOT_DIR,'permits_over_time.png'),
+#       height = 3,width = 5)
 
 #https://dataverse.harvard.edu/file.xhtml?fileId=10775159&version=1.0
 county_pops = fread('data/raw/construction_permits/historical_county_populations.csv')
@@ -93,7 +94,8 @@ p = ggplot() +
   labs(subtitle='Residential Construction Permits, 2015-2019') +
   theme(legend.position = 'bottom')
 
-ggsave(paste0(FIG_ROOT_DIR,'permits_map.png'),p,width=8,height=6)  
+#not in paper
+#ggsave(paste0(FIG_ROOT_DIR,'permits_map.png'),p,width=8,height=6)  
 
 }
 
@@ -111,14 +113,52 @@ county_pa = merge(county_pa, county_permits %>% select(-state), by = c('geoid','
 county_pa = county_pa %>%
   mutate(share_protected_area = share_protected_area * 100) 
 
-mod1 = feols(all_permits ~ share_protected_area | geoid + year^state,
-             data=county_pa %>% filter(space_type == 'LOCAL/PRIVATE'),
-             cluster = 'geoid')
-mod2 = feols(all_permits ~ share_protected_area | geoid + year^state,
-             data=county_pa %>% filter(space_type == 'FEDERAL/STATE'),
-             cluster = 'geoid')
+mod1.1 = feols(all_permits ~ share_protected_area,
+               data=county_pa %>% filter(space_type == 'LOCAL/PRIVATE'),
+               cluster = 'geoid')
+mod1.2 = feols(all_permits ~ share_protected_area | year^state,
+               data=county_pa %>% filter(space_type == 'LOCAL/PRIVATE'),
+               cluster = 'geoid')
+mod1.3 = feols(all_permits ~ share_protected_area | geoid + year^state,
+               data=county_pa %>% filter(space_type == 'LOCAL/PRIVATE'),
+               cluster = 'geoid')
 
-esttex(mod1,mod2,
+mod2.1 = feols(all_permits ~ share_protected_area,
+               data=county_pa %>% filter(space_type == 'FEDERAL/STATE'),
+               cluster = 'geoid')
+mod2.2 = feols(all_permits ~ share_protected_area | year^state,
+               data=county_pa %>% filter(space_type == 'FEDERAL/STATE'),
+               cluster = 'geoid')
+mod2.3 = feols(all_permits ~ share_protected_area | geoid + year^state,
+               data=county_pa %>% filter(space_type == 'FEDERAL/STATE'),
+               cluster = 'geoid')
+
+curr_dict = c("share_protected_area"    = "% Acres Protected")
+
+esttex(mod1.1,mod1.2,mod1.3,drop = c("Constant"),dict = curr_dict,
        style.tex = style.tex(main="aer",signif.code=c("**"=0.01, "*"=0.05))) %>%
-  writeLines(paste0(TAB_ROOT_DIR,'permit_county_mod.tex'))
+  writeLines(.,paste0(TAB_ROOT_DIR,'permit_county_mod_loc_priv.tex'))
+
+esttex(mod2.1,mod2.2,mod2.3,drop = c("Constant"),dict = curr_dict,
+       style.tex = style.tex(main="aer",signif.code=c("**"=0.01, "*"=0.05))) %>%
+  writeLines(.,paste0(TAB_ROOT_DIR,'permit_county_mod_fed_st.tex'))
+
+clean_table = readLines(paste0(TAB_ROOT_DIR,'clean_permits_table_template.tex'))
+clean_table = paste(clean_table, collapse = "\n")
+tab1 = readLines(paste0(TAB_ROOT_DIR,'permit_county_mod_loc_priv.tex'))
+tab2 = readLines(paste0(TAB_ROOT_DIR,'permit_county_mod_fed_st.tex'))
+
+start_line = which(str_detect(tab1, 'Acres Protected'))
+end_line = which(str_detect(tab1, 'Within R'))
+tab1 = tab1[start_line:end_line]
+tab1  = paste(tab1, collapse = '\n')
+out <- sub("TK_TABLE_1", tab1, clean_table, fixed = TRUE)
+
+start_line = which(str_detect(tab2, 'Acres Protected'))
+end_line = which(str_detect(tab2, 'Within R'))
+tab2 = tab2[start_line:end_line]
+tab2  = paste(tab2, collapse = '\n')
+out <- sub("TK_TABLE_2", tab2, out, fixed = TRUE)
+
+writeLines(out, paste0(TAB_ROOT_DIR,"permits_results.tex"))
 
